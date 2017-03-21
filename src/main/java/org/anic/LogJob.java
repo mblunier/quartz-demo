@@ -34,8 +34,8 @@ public class LogJob implements Job {
 
         long delay = abs(10 + random.nextLong() % 60000);
 
-        log.info("{}: trigger={}, now={}, scheduledTime={}, fireTime={}, nextTime={}, delay={}",
-                 detail.getKey(), trigger.getKey(), now, scheduledTime, fireTime, nextTime, delay);
+        log.info("{}: trigger={}, now={}, delay={}, scheduledTime={}, fireTime={}, nextTime={}",
+                 detail.getKey(), trigger.getKey(), now, delay, scheduledTime, fireTime, nextTime);
         try {
             Thread.sleep(delay);
         } catch (InterruptedException e) {
