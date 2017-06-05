@@ -4,6 +4,7 @@ import org.quartz.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Date;
 import java.util.Random;
 
 import static java.lang.Math.abs;
@@ -59,10 +60,13 @@ public class Demo {
     static String triggerInfo (Scheduler scheduler, TriggerKey key) throws SchedulerException {
         StringBuilder sb = new StringBuilder();
         Trigger trigger = scheduler.getTrigger(key);
+        Date nextTime = trigger.getNextFireTime();
         sb.append(key.toString())
           .append(':')
-          .append(" lastTime=").append(trigger.getPreviousFireTime())
-          .append(" nextTime=").append(trigger.getNextFireTime());
+          .append(" prevTime=").append(trigger.getPreviousFireTime())
+          .append(" nextTime=").append(nextTime)
+          .append(" overnextTime=").append(trigger.getFireTimeAfter(nextTime))
+          .append(" finalTime=").append(trigger.getFinalFireTime());
         return sb.toString();
     }
 

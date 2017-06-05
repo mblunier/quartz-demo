@@ -45,9 +45,9 @@ public class QuartzDemo {
                 .build();
     }
 
-    private static void logStatus (Scheduler scheduler) {
+    private static void logStatus (Scheduler scheduler, int loop) {
         try {
-            log.info("== " + schedulerInfo(scheduler));
+            log.info("== " + loop + ". " + schedulerInfo(scheduler));
             List<JobExecutionContext> jobs = scheduler.getCurrentlyExecutingJobs();
             log.info("==== " + jobs.size() + " jobs currently executing:");
             for (JobExecutionContext context : jobs) {
@@ -102,7 +102,7 @@ public class QuartzDemo {
             // running for 120 x 5s = 10m
             for (int loop = 0; loop < 120; ++loop) {
                 sleep(5);
-                logStatus(scheduler);
+                logStatus(scheduler, loop);
             }
         } catch (SchedulerException e) {
             log.warn("SchedulerException during execution", e);
