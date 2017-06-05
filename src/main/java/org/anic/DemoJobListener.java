@@ -8,13 +8,13 @@ import org.slf4j.Logger;
 /**
  * Created by markus on 03.06.17.
  */
-public class LogJobListener extends JobListenerSupport {
+public class DemoJobListener extends JobListenerSupport {
 
     private Logger log = getLog();
 
     @Override
     public String getName () {
-        return "LogJobListener";
+        return "DemoJobListener";
     }
 
     @Override

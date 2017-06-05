@@ -16,9 +16,9 @@ import static org.anic.Demo.*;
  *
  * @author markus
  */
-public class LogJob implements Job {
+public class DemoJob implements Job {
     
-    static Logger log = getLog(LogJob.class);
+    static Logger log = getLog(DemoJob.class);
 
     public void execute (JobExecutionContext context) throws JobExecutionException {
 
@@ -30,12 +30,12 @@ public class LogJob implements Job {
         Date nextTime = context.getNextFireTime();
         Date scheduledTime = context.getScheduledFireTime();
 
-        int delay = randomInt(1, 60);
+        int duration = randomInt(1, 60);
 
-        log.info("Executing {}: trigger={}, now={}, delay={}s, scheduledTime={}, fireTime={}, nextTime={}",
-                 detail.getKey(), trigger.getKey(), now, delay, scheduledTime, fireTime, nextTime);
+        log.info("Executing {}: trigger={}, now={}, duration={}s, scheduledTime={}, fireTime={}, nextTime={}",
+                 detail.getKey(), trigger.getKey(), now, duration, scheduledTime, fireTime, nextTime);
 
-        if (!sleep(delay)) {
+        if (!sleep(duration)) {
             log.info("{}: INTERRUPTED", detail.getKey());
         }
 

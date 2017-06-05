@@ -6,12 +6,11 @@ import org.quartz.impl.matchers.GroupMatcher;
 import org.slf4j.Logger;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Set;
 import java.util.TimeZone;
 
-import static org.anic.Demo.getLog;
-import static org.anic.Demo.sleep;
-import static org.anic.Demo.triggerInfo;
+import static org.anic.Demo.*;
 import static org.quartz.CronScheduleBuilder.cronSchedule;
 import static org.quartz.JobBuilder.*;
 import static org.quartz.SimpleScheduleBuilder.*;
@@ -22,7 +21,7 @@ public class QuartzDemo {
     static Logger log = getLog(QuartzDemo.class);
 
     static JobDetail createLogJob (int id) {
-        return newJob(LogJob.class)
+        return newJob(DemoJob.class)
                 .withIdentity("LoggerJob" + (id + 1), "*")
                 .build();
     }
@@ -48,12 +47,14 @@ public class QuartzDemo {
 
     private static void logStatus (Scheduler scheduler) {
         try {
-            log.info("Scheduler " + scheduler.getSchedulerName());
-            log.info("Instance: " + scheduler.getSchedulerInstanceId());
-            SchedulerMetaData meta = scheduler.getMetaData();
-            log.info("Jobs executed: " + meta.getNumberOfJobsExecuted());
+            log.info("== " + schedulerInfo(scheduler));
+            List<JobExecutionContext> jobs = scheduler.getCurrentlyExecutingJobs();
+            log.info("==== " + jobs.size() + " jobs currently executing:");
+            for (JobExecutionContext context : jobs) {
+                log.info(jobInfo(scheduler, context));
+            }
             Set<TriggerKey> triggers = scheduler.getTriggerKeys(GroupMatcher.anyTriggerGroup());
-            log.info(triggers.size() + " triggers:");
+            log.info("==== " + triggers.size() + " active triggers:");
             for (TriggerKey key : triggers) {
                 log.info(triggerInfo(scheduler, key));
             }
@@ -68,7 +69,7 @@ public class QuartzDemo {
 
         try {
             scheduler = StdSchedulerFactory.getDefaultScheduler();
-            scheduler.getListenerManager().addJobListener(new LogJobListener());
+            scheduler.getListenerManager().addJobListener(new DemoJobListener());
             scheduler.getListenerManager().addTriggerListener(new DemoTriggerListener());
             log.info("Scheduler initialized: " + scheduler.getMetaData().getSummary());
         } catch (SchedulerException e) {
