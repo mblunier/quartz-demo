@@ -5,14 +5,12 @@
  */
 package org.anic;
 
-import java.util.Date;
-import java.util.Random;
-
 import org.quartz.*;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import static java.lang.Math.abs;
+import java.util.Date;
+
+import static org.anic.Demo.*;
 
 /**
  *
@@ -20,10 +18,10 @@ import static java.lang.Math.abs;
  */
 public class LogJob implements Job {
     
-    static Logger log = LoggerFactory.getLogger(LogJob.class);
-    static Random random = new Random();
-    
+    static Logger log = getLog(LogJob.class);
+
     public void execute (JobExecutionContext context) throws JobExecutionException {
+
         //Job job = context.getJobInstance();
         JobDetail detail = context.getJobDetail();
         Trigger trigger = context.getTrigger();
@@ -32,16 +30,15 @@ public class LogJob implements Job {
         Date nextTime = context.getNextFireTime();
         Date scheduledTime = context.getScheduledFireTime();
 
-        long delay = abs(10 + random.nextLong() % 60000);
+        int delay = randomInt(1, 60);
 
-        log.info("{}: trigger={}, now={}, delay={}, scheduledTime={}, fireTime={}, nextTime={}",
+        log.info("Executing {}: trigger={}, now={}, delay={}s, scheduledTime={}, fireTime={}, nextTime={}",
                  detail.getKey(), trigger.getKey(), now, delay, scheduledTime, fireTime, nextTime);
-        try {
-            Thread.sleep(delay);
-        } catch (InterruptedException e) {
+
+        if (!sleep(delay)) {
             log.info("{}: INTERRUPTED", detail.getKey());
-        } finally {
-            log.info("{}: done", detail.getKey());
         }
+
+        log.info("{}: done", detail.getKey());
     }
 }
