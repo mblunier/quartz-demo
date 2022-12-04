@@ -2,6 +2,7 @@ package org.anic;
 
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
+import org.quartz.JobKey;
 import org.quartz.listeners.JobListenerSupport;
 import org.slf4j.Logger;
 
@@ -10,29 +11,29 @@ import org.slf4j.Logger;
  */
 public class DemoJobListener extends JobListenerSupport {
 
-    private Logger log = getLog();
+    private final Logger log = getLog();
 
-    @Override
-    public String getName () {
+    public String getName() {
         return "DemoJobListener";
     }
 
     @Override
-    public void jobToBeExecuted (JobExecutionContext context) {
-        log.info("Job to be executed: " + context.getJobDetail().getKey());
+    public void jobToBeExecuted(JobExecutionContext context) {
+        log.info("Job {} is about to be executed", context.getJobDetail().getKey());
     }
 
     @Override
-    public void jobExecutionVetoed (JobExecutionContext context) {
+    public void jobExecutionVetoed(JobExecutionContext context) {
         super.jobExecutionVetoed(context);
     }
 
     @Override
-    public void jobWasExecuted (JobExecutionContext context, JobExecutionException jobException) {
+    public void jobWasExecuted(JobExecutionContext context, JobExecutionException jobException) {
+        JobKey key = context.getJobDetail().getKey();
         if (jobException != null) {
-            log.warn("Job was executed with an error: " + context.getJobDetail().getKey(), jobException);
+            log.warn("Job {} was executed with an error", key, jobException);
         } else {
-            log.info("Job was successfully executed: " + context.getJobDetail().getKey());
+            log.info("Job {} was successfully executed", key);
         }
     }
 }

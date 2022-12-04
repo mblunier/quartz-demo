@@ -5,24 +5,24 @@
  */
 package org.anic;
 
-import org.quartz.*;
+import org.quartz.Job;
+import org.quartz.JobDetail;
+import org.quartz.JobExecutionContext;
+import org.quartz.Trigger;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Date;
 
-import static org.anic.Demo.*;
-
 /**
- *
  * @author markus
  */
 public class DemoJob implements Job {
-    
-    static Logger log = getLog(DemoJob.class);
 
-    public void execute (JobExecutionContext context) throws JobExecutionException {
+    private static final Logger log = LoggerFactory.getLogger(DemoJob.class);
 
-        //Job job = context.getJobInstance();
+    public void execute(JobExecutionContext context) {
+
         JobDetail detail = context.getJobDetail();
         Trigger trigger = context.getTrigger();
         Date now = new Date();
@@ -30,12 +30,12 @@ public class DemoJob implements Job {
         Date nextTime = context.getNextFireTime();
         Date scheduledTime = context.getScheduledFireTime();
 
-        int duration = randomInt(1, 60);
+        int duration = DemoUtils.randomInt(1, 60);
 
         log.info("Executing {}: trigger={}, now={}, duration={}s, scheduledTime={}, fireTime={}, nextTime={}",
-                 detail.getKey(), trigger.getKey(), now, duration, scheduledTime, fireTime, nextTime);
+                detail.getKey(), trigger.getKey(), now, duration, scheduledTime, fireTime, nextTime);
 
-        if (!sleep(duration)) {
+        if (!DemoUtils.sleep(duration)) {
             log.info("{}: INTERRUPTED", detail.getKey());
         }
 

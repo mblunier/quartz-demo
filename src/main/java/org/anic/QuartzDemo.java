@@ -1,95 +1,60 @@
 package org.anic;
 
-import org.quartz.*;
+import org.quartz.JobDetail;
+import org.quartz.JobExecutionContext;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
+import org.quartz.Trigger;
+import org.quartz.TriggerKey;
 import org.quartz.impl.StdSchedulerFactory;
 import org.quartz.impl.matchers.GroupMatcher;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.TimeZone;
 
-import static org.anic.Demo.*;
 import static org.quartz.CronScheduleBuilder.cronSchedule;
-import static org.quartz.JobBuilder.*;
-import static org.quartz.SimpleScheduleBuilder.*;
-import static org.quartz.TriggerBuilder.*;
+import static org.quartz.JobBuilder.newJob;
+import static org.quartz.SimpleScheduleBuilder.simpleSchedule;
+import static org.quartz.TriggerBuilder.newTrigger;
 
 public class QuartzDemo {
 
-    static Logger log = getLog(QuartzDemo.class);
+    private static final Logger log = LoggerFactory.getLogger(QuartzDemo.class);
 
-    static JobDetail createLogJob (int id) {
-        return newJob(DemoJob.class)
-                .withIdentity("LoggerJob" + (id + 1), "*")
-                .build();
-    }
+    public static void main(String[] args) {
 
-    static Trigger createIntervalTrigger (int id, int interval) {
-        return newTrigger()
-                .withIdentity("Trigger" + (id + 1), "*")
-                .withSchedule(simpleSchedule()
-                                .withIntervalInSeconds(interval)
-                                .repeatForever())
-                .startNow()
-                .build();
-    }
-
-    static Trigger createTimezoneTrigger (int id, String timezone) {
-        return newTrigger()
-                .withIdentity("Trigger" + (id + 1), "*")
-                .withSchedule(cronSchedule("0 3/3 * * * ?")
-                                .inTimeZone(TimeZone.getTimeZone(timezone)))
-                .startAt(new Date(System.currentTimeMillis() + 30000))
-                .build();
-    }
-
-    private static void logStatus (Scheduler scheduler, int loop) {
-        try {
-            log.info("== " + loop + ". " + schedulerInfo(scheduler));
-            List<JobExecutionContext> jobs = scheduler.getCurrentlyExecutingJobs();
-            log.info("==== " + jobs.size() + " jobs currently executing:");
-            for (JobExecutionContext context : jobs) {
-                log.info(jobInfo(scheduler, context));
-            }
-            Set<TriggerKey> triggers = scheduler.getTriggerKeys(GroupMatcher.anyTriggerGroup());
-            log.info("==== " + triggers.size() + " active triggers:");
-            for (TriggerKey key : triggers) {
-                log.info(triggerInfo(scheduler, key));
-            }
-        } catch (SchedulerException e) {
-            log.warn("SchedulerException", e);
-        }
-    }
-
-    public static void main (String[] args) {
-
-        Scheduler scheduler = null;
-
-        try {
-            scheduler = StdSchedulerFactory.getDefaultScheduler();
-            scheduler.getListenerManager().addJobListener(new DemoJobListener());
-            scheduler.getListenerManager().addTriggerListener(new DemoTriggerListener());
-            log.info("Scheduler initialized: " + scheduler.getMetaData().getSummary());
-        } catch (SchedulerException e) {
-            log.warn("SchedulerException during initialization", e);
-        }
-
+        Scheduler scheduler = createScheduler();
         if (scheduler == null) {
-            log.error("aborting...");
+            log.error("Aborting...");
             return;
         }
 
+        final int NUM_INTERVAL_JOBS = 5;
+
         try {
-            for (int j = 0; j < 5; ++j) {
-                JobDetail job = createLogJob(j);
-                Trigger trigger = createIntervalTrigger(j, 35);
+            for (int j = 0; j < NUM_INTERVAL_JOBS; ++j) {
+                String group = "Interval" + (j % 3);
+                JobDetail job = createJob(j, "IntervalJob", group);
+                Trigger trigger = createIntervalTrigger(j, group, DemoUtils.randomInt(2, 35));
                 scheduler.scheduleJob(job, trigger);
             }
             {
-                JobDetail job = createLogJob(10);
-                Trigger trigger = createTimezoneTrigger(10, "Asia/Bangkok");
+                int id = NUM_INTERVAL_JOBS + 1;
+                String group = "East";
+                JobDetail job = createJob(id, "CronJob", group);
+                Trigger trigger = createTimezoneTrigger(id, group, "Asia/Bangkok", DemoUtils.randomInt(3, 5));
+                scheduler.scheduleJob(job, trigger);
+            }
+            {
+                int id = NUM_INTERVAL_JOBS + 2;
+                String group = "West";
+                JobDetail job = createJob(id, "CronJob", group);
+                Trigger trigger = createTimezoneTrigger(id, group, "America/New_York", DemoUtils.randomInt(3, 5));
                 scheduler.scheduleJob(job, trigger);
             }
         } catch (SchedulerException e) {
@@ -97,11 +62,11 @@ public class QuartzDemo {
         }
 
         try {
-            log.info("start scheduling");
+            log.info("Start scheduling");
             scheduler.start();
             // running for 120 x 5s = 10m
             for (int loop = 0; loop < 120; ++loop) {
-                sleep(5);
+                DemoUtils.sleep(5);
                 logStatus(scheduler, loop);
             }
         } catch (SchedulerException e) {
@@ -109,14 +74,76 @@ public class QuartzDemo {
         }
 
         try {
-            log.info("shutting down");
+            log.info("Shutting down");
             scheduler.shutdown(true);
 
         } catch (SchedulerException e) {
             log.warn("SchedulerException during termination", e);
         }
 
-        log.info("bye");
+        log.info("Bye");
         System.exit(0);
     }
+
+    private static Scheduler createScheduler() {
+        try {
+            Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
+            scheduler.getListenerManager().addJobListener(new DemoJobListener());
+            scheduler.getListenerManager().addTriggerListener(new DemoTriggerListener());
+            log.info("Scheduler initialized: {}", scheduler.getMetaData().getSummary());
+            return scheduler;
+        } catch (SchedulerException e) {
+            log.warn("SchedulerException during initialization", e);
+            return null;
+        }
+    }
+
+    private static JobDetail createJob(int id, String name, String group) {
+        log.info("Creating job {} in group {}", name + (id + 1), group);
+        return newJob(DemoJob.class)
+                .withIdentity(name + (id + 1), group)
+                .build();
+    }
+
+    private static Trigger createIntervalTrigger(int id, String group, int interval) {
+        String name = "Trigger" + (id + 1);
+        log.info("Creating interval trigger {} with interval {} in group {}", name, interval, group);
+        return newTrigger()
+                .withIdentity(name, group)
+                .withSchedule(simpleSchedule()
+                        .withIntervalInSeconds(interval)
+                        .repeatForever())
+                .startNow()
+                .build();
+    }
+
+    private static Trigger createTimezoneTrigger(int id, String group, String timezone, int delaySecs) {
+        String name = "Trigger" + (id + 1);
+        log.info("Creating cron trigger {} with timezone {} in group {} with {}s delay", name, timezone, group, delaySecs);
+        return newTrigger()
+                .withIdentity(name, group)
+                .withSchedule(cronSchedule("0 3/3 * * * ?")
+                        .inTimeZone(TimeZone.getTimeZone(timezone)))
+                .startAt(Date.from(Instant.now().plusSeconds(delaySecs)))
+                .build();
+    }
+
+    private static void logStatus(Scheduler scheduler, int loop) {
+        try {
+            log.info("== {}. {}", loop, DemoUtils.schedulerInfo(scheduler));
+            List<JobExecutionContext> jobs = scheduler.getCurrentlyExecutingJobs();
+            log.info("==== {} jobs currently executing:", jobs.size());
+            for (JobExecutionContext context : jobs) {
+                log.info(DemoUtils.jobInfo(context));
+            }
+            Set<TriggerKey> triggers = scheduler.getTriggerKeys(GroupMatcher.anyTriggerGroup());
+            log.info("==== {} active triggers:", triggers.size());
+            for (TriggerKey key : triggers) {
+                log.info(DemoUtils.triggerInfo(scheduler, key));
+            }
+        } catch (SchedulerException e) {
+            log.warn("SchedulerException", e);
+        }
+    }
+
 }
